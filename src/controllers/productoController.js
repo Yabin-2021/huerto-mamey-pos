@@ -22,10 +22,24 @@ exports.obtenerProductoPorId = async (req, res) => {
 };
 
 exports.crearProducto = async (req, res) => {
+    // Asegúrate de que los nombres coincidan con los que envía el frontend payload
+    const { categoria_id, nombre, unidad_medida, precio_venta, precio_compra, stock_actual, stock_minimo } = req.body;
+
     try {
-        const nuevoId = await Producto.create(req.body);
-        res.status(201).json({ mensaje: "Producto registrado con éxito", productoId: nuevoId });
+        // Al llamar al modelo, pásale los datos correctos mapeando 'costo' si tu modelo lo llama así
+        const nuevoProductoId = await Producto.create({
+            categoria_id,
+            nombre,
+            unidad_medida,
+            precio_venta: precio_venta, // Asegurar que pase el valor correcto
+            costo: precio_compra,       // Mapeamos precio_compra al campo costo de tu BD
+            stock_actual,
+            stock_minimo
+        });
+
+        res.status(201).json({ mensaje: "Producto registrado con éxito", id: nuevoProductoId });
     } catch (error) {
+        console.error("❌ ERROR REAL EN BD:", error);
         res.status(500).json({ error: "Error al registrar el producto", detalles: error.message });
     }
 };
