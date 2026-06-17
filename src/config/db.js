@@ -1,22 +1,29 @@
-const mysql = require('mysql2');
-const dotenv = require('dotenv');
-
+const mysql = require('mysql2/promise'); // Asegúrate de usar la versión con promesas
+dotenv = require('dotenv');
 dotenv.config();
 
-const pool = mysql.createPool({
+// Creamos un POOL de conexiones en lugar de una conexión única
+const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    // 🔌 AGREGAMOS EL PUERTO: Si Railway te da uno diferente, lo leerá; si no, por defecto usará el 3306
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 10, // Permite hasta 10 conexiones simultáneas automáticas
     queueLimit: 0,
-    // 🔒 AGREGAMOS SSL: Clave para que la nube no te rechace la conexión por seguridad.
-    // El "rejectUnauthorized: false" permite conectar de forma segura sin arrastrar un certificado físico (.pem)
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
-// Exportamos el pool usando promesas para poder usar async/await en los modelos
-module.exports = pool.promise();
+// Verificar la conexión al arrancar el servidor
+(async () => {
+    try {
+        const connection = await db.getConnection();
+        console.log('◇ Conexión exitosa y segura a la Base de Datos en Railway 🚀');
+        connection.release(); // Regresa la conexión al pool
+    } catch (error) {
+        console.error('❌ Error crítico al conectar a la Base de Datos:', error.message);
+    }
+})();
+
+module.exports = db;
