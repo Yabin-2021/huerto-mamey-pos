@@ -9,6 +9,9 @@ exports.obtenerResumenVentas = async (req, res) => {
     const fechaInicio = req.query.fechaInicio || `${fechaLocal} 00:00:00`;
     const fechaFin = req.query.fechaFin || `${fechaLocal} 23:59:59`;
 
+    // 👁️ CHISMOSOS PARA EL LOG
+    console.log("🔍 RANGO DE FECHAS SOLICITADO:", { fechaInicio, fechaFin });
+
     try {
         // Consulta A: Total vendido y cantidad de transacciones (Alineado con CONVERT_TZ para leer la BD)
         const queryGeneral = `
@@ -19,6 +22,9 @@ exports.obtenerResumenVentas = async (req, res) => {
             WHERE CONVERT_TZ(fecha_hora, '+00:00', '-06:00') BETWEEN ? AND ?
         `;
         const [generalRows] = await db.query(queryGeneral, [fechaInicio, fechaFin]);
+
+        // 👁️ CHISMOSO PARA VER QUÉ DEVUELVE MYSQL
+        console.log("📊 RESPUESTA DIRECTA DE MYSQL:", generalRows[0]);
 
         // Consulta B: Desglose por método de pago (Efectivo, Tarjeta, etc.)
         const queryMetodos = `
