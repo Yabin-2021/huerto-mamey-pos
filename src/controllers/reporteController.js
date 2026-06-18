@@ -1,19 +1,22 @@
 const db = require('../config/db');
 
-// 1. Resumen de ventas en un rango de fechas (Totales, métodos de pago y ganancias estimadas)
+// 1. Resumen de ventas en un rango de fechas (Totales, métodos de pago)
 exports.obtenerResumenVentas = async (req, res) => {
-    // Si el cliente no envía fechas, por defecto tomamos la fecha de hoy
-    const fechaInicio = req.query.fechaInicio || new Date().toISOString().slice(0, 10) + ' 00:00:00';
-    const fechaFin = req.query.fechaFin || new Date().toISOString().slice(0, 10) + ' 23:59:59';
+    // 🕒 OBTENER LA FECHA DE MÉXICO: Restamos las 6 horas de desfase con UTC para sincronizar los calendarios de Render
+    const fechaLocal = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    // Si el cliente no envía fechas específicas, tomamos el día de hoy exacto en hora local
+    const fechaInicio = req.query.fechaInicio || `${fechaLocal} 00:00:00`;
+    const fechaFin = req.query.fechaFin || `${fechaLocal} 23:59:59`;
 
     try {
-        // Consulta A: Total vendido y cantidad de transacciones
+        // Consulta A: Total vendido y cantidad de transacciones (Alineado con CONVERT_TZ para leer la BD)
         const queryGeneral = `
             SELECT 
                 COUNT(id) AS total_transacciones,
                 COALESCE(SUM(total), 0) AS ingresos_totales
             FROM ventas 
-            WHERE fecha_hora BETWEEN ? AND ?
+            WHERE CONVERT_TZ(fecha_hora, '+00:00', '-06:00') BETWEEN ? AND ?
         `;
         const [generalRows] = await db.query(queryGeneral, [fechaInicio, fechaFin]);
 
@@ -24,7 +27,7 @@ exports.obtenerResumenVentas = async (req, res) => {
                 COUNT(id) AS cantidad_ventas,
                 COALESCE(SUM(total), 0) AS total_ingresado
             FROM ventas 
-            WHERE fecha_hora BETWEEN ? AND ?
+            WHERE CONVERT_TZ(fecha_hora, '+00:00', '-06:00') BETWEEN ? AND ?
             GROUP BY metodo_pago
         `;
         const [metodoRows] = await db.query(queryMetodos, [fechaInicio, fechaFin]);
@@ -40,7 +43,7 @@ exports.obtenerResumenVentas = async (req, res) => {
     }
 };
 
-// 2. Top de productos más vendidos (ideal para ver si se mueve más el Oro Verde, Molido, etc.)
+// 2. Top de productos más vendidos (Filtrado opcional por fechas o histórico general)
 exports.obtenerProductosMasVendidos = async (req, res) => {
     const limite = parseInt(req.query.limite) || 5;
 
