@@ -46,12 +46,38 @@ exports.crearProducto = async (req, res) => {
 
 exports.actualizarProducto = async (req, res) => {
     try {
-        const actualizado = await Producto.update(req.params.id, req.body);
+        // 1. Extraemos los datos que vienen del frontend payload
+        const { 
+            categoria_id, 
+            nombre, 
+            unidad_medida, 
+            precio_venta, 
+            precio_compra, 
+            stock_actual, 
+            stock_minimo 
+        } = req.body;
+
+        // 2. Construimos el objeto adaptado a los campos exactos que tu modelo/BD esperan
+        const datosActualizados = {
+            categoria_id: parseInt(categoria_id),
+            nombre,
+            unidad_medida,
+            precio_venta: parseFloat(precio_venta),
+            costo: parseFloat(precio_compra), // 🚨 ARREGLO CRÍTICO: Mapeamos precio_compra a 'costo'
+            stock_actual: parseFloat(stock_actual),
+            stock_minimo: parseFloat(stock_minimo)
+        };
+
+        // 3. Pasamos el objeto corregido al modelo
+        const actualizado = await Producto.update(req.params.id, datosActualizados);
+        
         if (!actualizado) {
             return res.status(404).json({ error: "Producto no encontrado o sin cambios" });
         }
+        
         res.json({ mensaje: "Producto actualizado con éxito" });
     } catch (error) {
+        console.error("❌ ERROR REAL EN ACTUALIZAR PRODUCTO:", error); // Esto te ayudará en la consola de Render
         res.status(500).json({ error: "Error al actualizar el producto", detalles: error.message });
     }
 };
